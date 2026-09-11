@@ -1,5 +1,7 @@
 # Tartarek — Agente de Recomendación de Cursos
 
+**🔗 Demo en vivo:** https://ramiroz93.github.io/tartarek/
+
 Agente interno que sugiere qué cursos conviene repetir o lanzar, y hace matching automático entre esas ideas de curso y una base de hojas de vida (CVs), por palabras clave.
 
 Extraído como pieza de portfolio de un sistema de gestión más grande ([VirtuallCorp — Sistema de Ventas](../sistema-ventas-virtualcorp-github)), donde vive como uno de sus módulos.
