@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tartarek - Agente de Recomendación de Cursos</title>
+<style>
+  :root {
+    --bg:        #FAFAFA;
+    --panel:     #FFFFFF;
+    --borde:     #E4E4E7;
+    --texto:     #18181B;
+    --texto-pri: #18181B;
+    --texto-sec: #71717A;
+    --texto-ter: #A1A1AA;
+    --acento:    #14215E;
+    --acento-suave: #EEF0F9;
+    --verde:     #16A34A;
+    --rojo:      #DC2626;
+    --radio:     10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif; background: var(--bg); color: var(--texto); -webkit-font-smoothing: antialiased; }
+
+  /* ── LOGIN DEMO ── */
+  #pantalla-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-card { background: var(--panel); border: 1px solid var(--borde); border-radius: 14px; padding: 40px 36px; width: 100%; max-width: 380px; }
+  .login-logo { font-size: 20px; font-weight: 700; color: var(--acento); text-align: center; margin-bottom: 2px; }
+  .login-sub { font-size: 12.5px; color: var(--texto-sec); text-align: center; margin-bottom: 28px; }
+  .btn-login { width: 100%; padding: 11px; background: var(--acento); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-login:hover { opacity: .9; }
+  .login-nota { margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; background: var(--acento-suave); color: var(--texto-sec); text-align: center; }
+
+  /* ── APP ── */
+  #app { display: none; }
+  .topbar { background: var(--acento); color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .topbar-titulo { font-weight: 700; font-size: 14px; }
+  .topbar-nota { font-size: 12px; opacity: .8; }
+  .main { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+  .btn { padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--borde); background: white; color: var(--texto); transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { border-color: var(--acento); color: var(--acento); }
+  .btn-primario { background: var(--acento); color: white; border-color: var(--acento); }
+  .btn-primario:hover { opacity: 0.85; color: white; }
+
+  .panel-card { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; margin-bottom: 20px; }
+  .panel-card-hdr { padding: 18px 22px; border-bottom: 1px solid var(--borde); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .panel-card-titulo { font-size: 14.5px; font-weight: 700; }
+  .panel-card-body { padding: 22px; }
+
+  .form-field label { display: block; font-size: 12px; font-weight: 600; color: var(--texto-sec); margin-bottom: 6px; }
+  .form-field input, .form-field textarea, .form-field select { width: 100%; padding: 9px 11px; border: 1px solid var(--borde); border-radius: 8px; font-size: 13.5px; outline: none; background: white; font-family: inherit; }
+  .form-field input:focus, .form-field textarea:focus, .form-field select:focus { border-color: var(--acento); }
+
+  .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
+  .badge-neutro { background: var(--acento-suave); color: var(--texto-sec); }
+
+  .estado-vacio { text-align: center; padding: 48px 20px; color: var(--texto-sec); font-size: 13.5px; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; background: var(--texto); color: white; border-radius: 10px; font-size: 13.5px; font-weight: 500; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 300; opacity: 0; transform: translateY(10px); transition: all .3s; pointer-events: none; }
+  .toast.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN DEMO (sin backend, solo para mostrar el flujo) -->
+<div id="pantalla-login">
+  <div class="login-card">
+    <div class="login-logo">&#129302; Tartarek</div>
+    <div class="login-sub">Agente de recomendación de cursos con matching de CVs</div>
+    <button class="btn-login" onclick="entrarDemo()">Entrar al panel demo</button>
+    <div class="login-nota">Demo de portfolio: no hay backend real ni IA externa. Los cursos, CVs y coincidencias son ficticios y se generan en tu navegador.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-titulo">&#129302; Tartarek — Agente de Recomendaciones</div>
+    <div class="topbar-nota">Módulo extraído de VirtuallCorp · datos de demostración</div>
+  </div>
+
+  <div class="main">
+    <div class="panel-card" id="crono-panel-tartarek">
+      <div class="panel-card-hdr">
+        <span class="panel-card-titulo">&#129302; Tartarek</span>
+        <span style="font-size:11.5px;color:var(--texto-sec)">Agente de recomendaciones</span>
+      </div>
+
+      <!-- Sub-pestañas de Tartarek -->
+      <div style="display:flex;gap:4px;border-bottom:1px solid var(--borde);padding:0 16px;flex-wrap:wrap">
+        <button onclick="seleccionarSubTartarek('repetir')" id="tartarek-sub-repetir"
+          style="white-space:nowrap;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--acento);border-bottom:2.5px solid var(--acento);margin-bottom:-1px;transition:all .15s">
+          &#128260; Cursos a Repetir
+        </button>
+        <button onclick="seleccionarSubTartarek('nuevos')" id="tartarek-sub-nuevos"
+          style="white-space:nowrap;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--texto-sec);border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:all .15s">
+          &#128161; Cursos Nuevos
+        </button>
+        <button onclick="seleccionarSubTartarek('ideas')" id="tartarek-sub-ideas"
+          style="white-space:nowrap;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--texto-sec);border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:all .15s">
+          &#128221; Ideas de Curso
+        </button>
+        <button onclick="seleccionarSubTartarek('buscarcv')" id="tartarek-sub-buscarcv"
+          style="white-space:nowrap;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--texto-sec);border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:all .15s">
+          &#128269; Buscar CV
+        </button>
+        <button onclick="seleccionarSubTartarek('seguimiento')" id="tartarek-sub-seguimiento"
+          style="white-space:nowrap;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit;color:var(--texto-sec);border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:all .15s">
+          &#128203; Seguimiento
+        </button>
+      </div>
+
+      <!-- Sub-panel: Cursos a Repetir -->
+      <div id="tartarek-panel-repetir" style="padding:18px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--texto-sec)">Analiza el historial de inscritos de los últimos 12 meses para sugerir qué cursos conviene repetir.</span>
+          <button class="btn" onclick="analizarTartarekRepetir()" style="font-size:12px">&#8635; Actualizar</button>
+        </div>
+        <div id="tartarek-repetir-body"><div class="estado-vacio">Cargando análisis...</div></div>
+      </div>
+
+      <!-- Sub-panel: Cursos Nuevos -->
+      <div id="tartarek-panel-nuevos" style="display:none;padding:18px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--texto-sec)" id="tartarek-nuevos-meta">Investigación semanal de cursos nuevos por área (2 a 5 por área), con base en tendencias y en lo que ya se dicta.</span>
+          <button class="btn" onclick="cargarTartarekCursosNuevos()" style="font-size:12px">&#8635; Actualizar</button>
+        </div>
+        <div id="tartarek-nuevos-body"><div class="estado-vacio">Cargando recomendaciones...</div></div>
+      </div>
+
+      <!-- Sub-panel: Ideas de Curso -->
+      <div id="tartarek-panel-ideas" style="display:none;padding:18px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--texto-sec)">Ideas de cursos guardadas, manuales o enviadas desde "Cursos Nuevos".</span>
+          <button class="btn btn-primario" onclick="abrirFormIdeaCurso()" style="font-size:12px">+ Nueva idea</button>
+        </div>
+
+        <div id="idea-curso-form-panel" class="panel-card" style="display:none;margin-bottom:20px">
+          <div class="panel-card-hdr" style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700">Nueva idea de curso</span>
+            <button class="btn" onclick="cerrarFormIdeaCurso()">&#10006;</button>
+          </div>
+          <div class="panel-card-body">
+            <div class="form-field" style="margin-bottom:12px">
+              <label>Nombre del curso *</label>
+              <input type="text" id="idea-curso-nombre" placeholder="Ej: Gobierno Digital y Transformación Digital del Estado">
+            </div>
+            <div class="form-field" style="margin-bottom:12px">
+              <label>Detalle *</label>
+              <textarea id="idea-curso-detalle" rows="2" placeholder="Por qué conviene dictarlo..." style="resize:vertical"></textarea>
+            </div>
+            <div class="form-field" style="margin-bottom:12px">
+              <label>Contenido — 7 temas *</label>
+              <textarea id="idea-curso-contenido" rows="7" placeholder="Un tema por línea (los 7 temas del curso)..." style="resize:vertical"></textarea>
+            </div>
+            <div class="form-field" style="margin-bottom:12px">
+              <label>Importancia</label>
+              <div id="idea-curso-importancia-wrap"></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:8px">
+              <button class="btn btn-primario" onclick="guardarIdeaCurso()">Guardar idea</button>
+              <button class="btn" onclick="cerrarFormIdeaCurso()">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ideas-curso-body"><div class="estado-vacio">Cargando ideas...</div></div>
+      </div>
+
+      <!-- Sub-panel: Buscar CV -->
+      <div id="tartarek-panel-buscarcv" style="display:none;padding:18px 16px">
+        <div style="font-size:12px;color:var(--texto-sec);margin-bottom:6px" id="buscarcv-stats">Cargando estadísticas...</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <input type="text" id="buscarcv-input" placeholder="Ej: excel avanzado contabilidad, o el nombre de la persona..."
+            style="flex:1;padding:9px 12px;border:1px solid var(--borde);border-radius:8px;font-size:13.5px;outline:none"
+            onkeydown="if(event.key==='Enter')buscarCvTexto()">
+          <button class="btn btn-primario" id="btn-buscarcv" onclick="buscarCvTexto()">&#128269; Buscar</button>
+        </div>
+        <div id="buscarcv-resultados"></div>
+
+        <div style="margin-top:24px;border-top:1px solid var(--borde);padding-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <span style="font-size:13px;font-weight:700">&#9888; Posibles CVs duplicados</span>
+            <button class="btn" onclick="cargarCvDuplicados()" style="font-size:12px">&#8635; Revisar</button>
+          </div>
+          <div id="buscarcv-duplicados"><div class="estado-vacio">Presioná "Revisar" para ver posibles duplicados.</div></div>
+        </div>
+      </div>
+
+      <!-- Sub-panel: Seguimiento -->
+      <div id="tartarek-panel-seguimiento" style="display:none;padding:18px 16px">
+        <div style="font-size:12px;color:var(--texto-sec);margin-bottom:14px">Cursos ya con docente asignado, en proceso de armado.</div>
+        <div id="seguimiento-body"><div class="estado-vacio">Cargando seguimiento...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── DEMO: login sin backend ──
+  var usuarioActual = { nombre: 'Demo Admin', rol: 'admin' };
+  function entrarDemo() {
+    document.getElementById('pantalla-login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    inicializarTartarek();
+  }
+
+  // ── Utilidades compartidas (extraídas del sistema original) ──
+  function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function mostrarToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(function(){ t.classList.remove('visible'); }, 3000);
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // DEMO: datos ficticios generados en el navegador (sin backend real)
+  // ══════════════════════════════════════════════════════════════
+  var DEMO_CVS = [
+    { id: 'cv-1', nombre_archivo: 'Maria_Fernanda_Rojas_CV.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: null,
+      texto_extraido: 'Contadora con 8 años de experiencia en gestión pública, manejo avanzado de Excel, elaboración de estados financieros y presupuestos institucionales.' },
+    { id: 'cv-2', nombre_archivo: 'Maria_F_Rojas_CV_v2.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: 'cv-1',
+      texto_extraido: 'Contadora, gestión pública, Excel avanzado, presupuestos institucionales y estados financieros.' },
+    { id: 'cv-3', nombre_archivo: 'Carlos_Andres_Mamani_CV.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: null,
+      texto_extraido: 'Especialista en marketing digital, redes sociales, publicidad en Meta Ads e Instagram, analítica web y estrategias de contenido.' },
+    { id: 'cv-4', nombre_archivo: 'Lucia_Vargas_CV.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: null,
+      texto_extraido: 'Ingeniera comercial con experiencia en atención al cliente, ventas consultivas y capacitación de equipos comerciales.' },
+    { id: 'cv-5', nombre_archivo: 'Jorge_Quispe_CV.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: null,
+      texto_extraido: 'Analista de datos, manejo de Power BI, Excel avanzado, dashboards financieros y automatización de reportes.' },
+    { id: 'cv-6', nombre_archivo: 'Ana_Belen_Choque_CV.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: null,
+      texto_extraido: 'Especialista en recursos humanos, procesos de selección, gestión del talento y liderazgo de equipos remotos.' },
+    { id: 'cv-7', nombre_archivo: 'Ruben_Torrez_CV.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: null,
+      texto_extraido: 'Consultor en gestión pública, transformación digital del Estado, gobierno electrónico y modernización institucional.' },
+    { id: 'cv-8', nombre_archivo: 'Patricia_Gonzales_CV.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: null,
+      texto_extraido: 'Redactora y editora, comunicación institucional, redacción de documentos técnicos y oratoria.' },
+    { id: 'cv-9', nombre_archivo: 'Fernando_Aguilar_CV.pdf', drive_file_url: '#', estado_extraccion: 'sin_texto_extraido', posible_duplicado_de: null,
+      texto_extraido: null },
+    { id: 'cv-10', nombre_archivo: 'Silvia_Rocha_CV.pdf', drive_file_url: '#', estado_extraccion: 'completo', posible_duplicado_de: null,
+      texto_extraido: 'Contabilidad avanzada, Excel avanzado, gestión de presupuestos institucionales y tributación.' },
+  ];
+
+  var DEMO_IDEAS_CURSOS = [
+    { id: 'idea-1', nombre: 'Excel Avanzado para Gestión Pública',
+      detalle: 'Alta demanda de funcionarios públicos que necesitan automatizar reportes financieros.',
+      contenido: '▪️ Introducción a Excel avanzado para el sector público\n▪️ Tablas dinámicas y reportes automatizados\n▪️ Fórmulas financieras y presupuestarias\n▪️ Validación de datos y control de calidad\n▪️ Macros básicas para tareas repetitivas\n▪️ Dashboards con gráficos dinámicos\n▪️ Buenas prácticas de seguridad y respaldo de información',
+      area_nombre: 'Finanzas', importancia: 5, origen: 'tartarek', enviado_por: 'Ana', created_at: new Date(Date.now() - 5*86400000).toISOString() },
+    { id: 'idea-2', nombre: 'Marketing Digital para Emprendedores',
+      detalle: 'Emprendedores y microempresarios buscando formalizar su presencia digital.',
+      contenido: '▪️ Fundamentos de marketing digital para emprendedores\n▪️ Creación de contenido para redes sociales\n▪️ Publicidad paga en Meta Ads\n▪️ Analítica web y métricas clave\n▪️ Email marketing y automatización\n▪️ Estrategias de posicionamiento de marca\n▪️ Plan de marketing digital de 90 días',
+      area_nombre: 'Marketing', importancia: 3, origen: 'manual', enviado_por: '', created_at: new Date(Date.now() - 2*86400000).toISOString() },
+  ];
+
+  var DEMO_TARTAREK_NUEVOS = [
+    { id: 'nuevo-1', area_nombre: 'Finanzas', curso_sugerido: 'Power BI para Reportes Gerenciales',
+      justificacion: 'Alta demanda de dashboards interactivos en el sector público y privado; complementa a Excel Avanzado.',
+      contenido: '▪️ Introducción a Power BI y conexión de datos\n▪️ Modelado de datos y relaciones\n▪️ Medidas DAX básicas\n▪️ Visualizaciones interactivas\n▪️ Dashboards gerenciales\n▪️ Publicación y actualización de reportes\n▪️ Buenas prácticas de diseño de dashboards',
+      lote_fecha: new Date(Date.now() - 3*86400000).toISOString() },
+    { id: 'nuevo-2', area_nombre: 'Finanzas', curso_sugerido: 'Contabilidad Gubernamental Básica',
+      justificacion: 'Consultas recurrentes de funcionarios nuevos en el área de finanzas.',
+      contenido: '', lote_fecha: new Date(Date.now() - 3*86400000).toISOString() },
+    { id: 'nuevo-3', area_nombre: 'Marketing', curso_sugerido: 'Redes Sociales para Emprendimientos',
+      justificacion: 'Tendencia creciente de microempresarios buscando presencia digital propia.',
+      contenido: '▪️ Diagnóstico de redes sociales del negocio\n▪️ Definición de audiencia y tono de marca\n▪️ Calendario de contenido\n▪️ Herramientas de diseño gratuitas\n▪️ Métricas básicas de desempeño\n▪️ Interacción y comunidad\n▪️ Plan de publicación mensual',
+      lote_fecha: new Date(Date.now() - 3*86400000).toISOString() },
+    { id: 'nuevo-4', area_nombre: 'Recursos Humanos', curso_sugerido: 'Reclutamiento y Selección por Competencias',
+      justificacion: 'Empresas medianas piden formación en procesos de selección modernos.',
+      contenido: '▪️ Perfil de puesto por competencias\n▪️ Fuentes de reclutamiento\n▪️ Entrevistas por competencias\n▪️ Pruebas y assessment\n▪️ Toma de decisión de contratación\n▪️ Onboarding efectivo\n▪️ Indicadores de selección',
+      lote_fecha: new Date(Date.now() - 3*86400000).toISOString() },
+    { id: 'nuevo-5', area_nombre: 'Recursos Humanos', curso_sugerido: 'Liderazgo de Equipos Remotos',
+      justificacion: 'Aumento sostenido de modalidades híbridas y remotas tras la pandemia.',
+      contenido: '▪️ Retos del liderazgo a distancia\n▪️ Comunicación asíncrona efectiva\n▪️ Herramientas de colaboración\n▪️ Gestión de desempeño remoto\n▪️ Cultura de equipo a distancia\n▪️ Prevención del aislamiento\n▪️ Reuniones remotas productivas',
+      lote_fecha: new Date(Date.now() - 3*86400000).toISOString() },
+  ];
+
+  var DEMO_SEGUIMIENTO = [
+    { id: 'seg-1', idea_curso_id: null, nombre: 'Power BI para Reportes Gerenciales',
+      detalle: 'Alta demanda de dashboards interactivos.', contenido: '7 temas confirmados con el docente.',
+      area_nombre: 'Finanzas', docente_tipo: 'cv', cv_id: 'cv-5', cv_nombre: 'Jorge_Quispe_CV.pdf',
+      capacitador_id: null, capacitador_nombre: null, whatsapp: '70011223', enviado_por: 'Ana',
+      etapa_llamada: true,  etapa_llamada_fecha: new Date(Date.now() - 6*86400000).toISOString(),
+      etapa_temario: true,  etapa_temario_fecha: new Date(Date.now() - 3*86400000).toISOString(),
+      etapa_diapositivas: false, etapa_diapositivas_fecha: new Date(Date.now() + 2*86400000).toISOString(),
+      etapa_zoom: false, etapa_zoom_fecha: null,
+      created_at: new Date(Date.now() - 7*86400000).toISOString() },
+  ];
+
+  var DEMO_CV_MATCHES = [
+    { curso_id: 'idea-1', cv_id: 'cv-1',  similarity_score: 0.82, palabras_encontradas: ['excel', 'gestión', 'presupuestos'], motivo: null },
+    { curso_id: 'idea-1', cv_id: 'cv-10', similarity_score: 0.74, palabras_encontradas: ['excel', 'presupuestos'], motivo: null },
+    { curso_id: 'idea-1', cv_id: 'cv-5',  similarity_score: 0.61, palabras_encontradas: ['excel'], motivo: null },
+    { curso_id: 'idea-2', cv_id: 'cv-3',  similarity_score: 0.88, palabras_encontradas: ['marketing', 'digital', 'redes'], motivo: null },
+  ];
+  var DEMO_CV_MATCHES_RECHAZADOS = [];
+  var DEMO_PALABRAS_DESCARTADAS = [];
+
+  var DEMO_CAPACITADORES = [
+    { id: 'cap-1', nombre: 'Rodrigo Salinas', celular: '75512345', activo: true },
+    { id: 'cap-2', nombre: 'Daniela Peña', celular: '76654321', activo: true },
+    { id: 'cap-3', nombre: 'Mauricio Fernández', celular: '70099887', activo: true },
+  ];
+
+  var DEMO_VENTAS = [];
+  var DEMO_CRONOGRAMA_EVENTOS = [];
+  (function generarHistorialDemo() {
+    var hoy = new Date();
+    function fstr(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+    // Curso A: candidato a repetir (>= umbral, sin fecha futura programada)
+    var mesA = new Date(hoy.getFullYear(), hoy.getMonth()-3, 1);
+    for (var i = 0; i < 19; i++) {
+      var d = new Date(mesA.getFullYear(), mesA.getMonth(), 2 + (i % 25));
+      DEMO_VENTAS.push({ curso: 'Excel Avanzado para Gestión Pública', fecha_pago: fstr(d), created_at: d.toISOString() });
+    }
+
+    // Curso B: buena convocatoria pero YA tiene fecha futura -> no debe salir como candidato
+    var mesB = new Date(hoy.getFullYear(), hoy.getMonth()-2, 1);
+    for (var j = 0; j < 16; j++) {
+      var d2 = new Date(mesB.getFullYear(), mesB.getMonth(), 3 + (j % 24));
+      DEMO_VENTAS.push({ curso: 'Marketing Digital para Emprendedores', fecha_pago: fstr(d2), created_at: d2.toISOString() });
+    }
+    var futuro = new Date(hoy.getFullYear(), hoy.getMonth()+1, 15);
+    DEMO_CRONOGRAMA_EVENTOS.push({ id: 'ev-1', curso: 'Marketing Digital para Emprendedores', fecha: fstr(futuro) });
+
+    // Curso C: por debajo del umbral -> no debe aparecer
+    var mesC = new Date(hoy.getFullYear(), hoy.getMonth()-4, 1);
+    for (var k = 0; k < 8; k++) {
+      var d3 = new Date(mesC.getFullYear(), mesC.getMonth(), 5 + k*2);
+      DEMO_VENTAS.push({ curso: 'Atención al Cliente Nivel 1', fecha_pago: fstr(d3), created_at: d3.toISOString() });
+    }
+  })();
+
+  // ══════════════════════════════════════════════════════════════
+  // DEMO: mock del cliente Supabase — sólo filtra/muta los arrays de arriba,
+  // no hay red ni backend real detrás de esto.
+  // ══════════════════════════════════════════════════════════════
+  var DEMO_TABLES = {
+    cvs: DEMO_CVS,
+    ideas_cursos: DEMO_IDEAS_CURSOS,
+    tartarek_cursos_nuevos: DEMO_TARTAREK_NUEVOS,
+    seguimiento_cursos: DEMO_SEGUIMIENTO,
+    cv_matches: DEMO_CV_MATCHES,
+    cv_matches_rechazados: DEMO_CV_MATCHES_RECHAZADOS,
+    palabras_descartadas: DEMO_PALABRAS_DESCARTADAS,
+    cronograma_eventos: DEMO_CRONOGRAMA_EVENTOS,
+    ventas: DEMO_VENTAS,
+    capacitadores: DEMO_CAPACITADORES,
+  };
+
+  function _genId(prefix) { return prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function _matchesFilters(row, filters) {
+    return filters.every(function(f) {
+      if (f.t === 'eq') return row[f.field] === f.val;
+      if (f.t === 'gte') return row[f.field] >= f.val;
+      if (f.t === 'lte') return row[f.field] <= f.val;
+      if (f.t === 'not' && f.op2 === 'is' && f.val === null) return row[f.field] !== null && row[f.field] !== undefined;
+      if (f.t === 'ilike') {
+        var needle = String(f.pattern).replace(/%/g, '').toLowerCase();
+        var hay = String(row[f.field] || '').toLowerCase();
+        return hay.indexOf(needle) !== -1;
+      }
+      return true;
+    });
+  }
+
+  function _joinRow(table, row) {
+    if (table === 'cvs' && row.posible_duplicado_de) {
+      var orig = DEMO_CVS.find(function(c) { return c.id === row.posible_duplicado_de; });
+      row = Object.assign({}, row, { original: orig });
+    }
+    if (table === 'cv_matches') {
+      var cv = DEMO_CVS.find(function(c) { return c.id === row.cv_id; });
+      row = Object.assign({}, row, { cvs: cv });
+    }
+    return row;
+  }
+
+  function _resolveQuery(table, rowsRef, st) {
+    if (st.op === 'insert') {
+      var row = Object.assign({ id: _genId(table), created_at: new Date().toISOString() }, st.payload);
+      rowsRef.push(row);
+      return { data: [row], error: null };
+    }
+    if (st.op === 'update') {
+      var matched = rowsRef.filter(function(r) { return _matchesFilters(r, st.filters); });
+      matched.forEach(function(r) { Object.assign(r, st.payload); });
+      return { data: matched, error: null };
+    }
+    if (st.op === 'delete') {
+      var toDelete = rowsRef.filter(function(r) { return _matchesFilters(r, st.filters); });
+      toDelete.forEach(function(r) {
+        var idx = rowsRef.indexOf(r);
+        if (idx >= 0) rowsRef.splice(idx, 1);
+      });
+      return { data: null, error: null };
+    }
+    // select
+    var rows = rowsRef.filter(function(r) { return _matchesFilters(r, st.filters); }).map(function(r) { return _joinRow(table, r); });
+    st.orders.slice().reverse().forEach(function(o) {
+      rows.sort(function(a, b) {
+        if (a[o.field] === b[o.field]) return 0;
+        var cmp = a[o.field] > b[o.field] ? 1 : -1;
+        return o.asc ? cmp : -cmp;
+      });
+    });
+    if (st.limitN != null) rows = rows.slice(0, st.limitN);
+    if (st.countOpt) return { data: null, error: null, count: rows.length };
+    if (st.single) return rows.length ? { data: rows[0], error: null } : { data: null, error: { message: 'No encontrado' } };
+    return { data: rows, error: null };
+  }
+
+  var supa = {
+    from: function(table) {
+      var rowsRef = DEMO_TABLES[table] || [];
+      var st = { filters: [], orders: [], limitN: null, single: false, countOpt: false, op: null, payload: null };
+      var api = {
+        select: function(fields, opts) { if (opts && opts.count === 'exact') st.countOpt = true; return api; },
+        eq:  function(field, val) { st.filters.push({ t: 'eq',  field: field, val: val }); return api; },
+        gte: function(field, val) { st.filters.push({ t: 'gte', field: field, val: val }); return api; },
+        lte: function(field, val) { st.filters.push({ t: 'lte', field: field, val: val }); return api; },
+        not: function(field, op2, val) { st.filters.push({ t: 'not', field: field, op2: op2, val: val }); return api; },
+        ilike: function(field, pattern) { st.filters.push({ t: 'ilike', field: field, pattern: pattern }); return api; },
+        order: function(field, opts) { st.orders.push({ field: field, asc: !(opts && opts.ascending === false) }); return api; },
+        limit: function(n) { st.limitN = n; return api; },
+        single: function() { st.single = true; return api; },
+        insert: function(payload) { st.op = 'insert'; st.payload = payload; return api; },
+        update: function(payload) { st.op = 'update'; st.payload = payload; return api; },
+        delete: function() { st.op = 'delete'; return api; },
+        then: function(resolve) {
+          return new Promise(function(res) {
+            setTimeout(function() { res(resolve(_resolveQuery(table, rowsRef, st))); }, 0);
+          });
+        }
+      };
+      return api;
+    }
+  };
+
+  // ── TARTAREK: agente de recomendaciones ──
+  var _TARTAREK_UMBRAL = 15; // mismo umbral usado en el Reporte Anual ("recomendado repetir")
+
+  function inicializarTartarek() {
+    seleccionarSubTartarek('repetir');
+    analizarTartarekRepetir();
+  }
+
+  function seleccionarSubTartarek(tipo) {
+    var subs = ['repetir', 'nuevos', 'ideas', 'buscarcv', 'seguimiento'];
+    if (subs.indexOf(tipo) < 0) return;
+    subs.forEach(function(t) {
+      var btn = document.getElementById('tartarek-sub-' + t);
+      if (btn) {
+        btn.style.color = (t === tipo) ? 'var(--acento)' : 'var(--texto-sec)';
+        btn.style.borderBottomColor = (t === tipo) ? 'var(--acento)' : 'transparent';
+      }
+      var panel = document.getElementById('tartarek-panel-' + t);
+      if (panel) panel.style.display = (t === tipo) ? 'block' : 'none';
+    });
+    if (tipo === 'nuevos') cargarTartarekCursosNuevos();
+    if (tipo === 'ideas') cargarIdeasCursos();
+    if (tipo === 'buscarcv') cargarStatsCv();
+    if (tipo === 'seguimiento') cargarSeguimiento();
+  }
+
+  // ── BUSCAR CV ──
+  function cargarStatsCv() {
+    var el = document.getElementById('buscarcv-stats');
+    if (!el) return;
+    Promise.all([
+      supa.from('cvs').select('id', { count: 'exact', head: true }),
+      supa.from('cvs').select('id', { count: 'exact', head: true }).eq('estado_extraccion', 'sin_texto_extraido'),
+      supa.from('cvs').select('id', { count: 'exact', head: true }).not('posible_duplicado_de', 'is', null),
+    ]).then(function(res) {
+      var total = res[0].count || 0;
+      var sinTexto = res[1].count || 0;
+      var duplicados = res[2].count || 0;
+      el.textContent = total + ' CVs cargados' + (sinTexto ? ' · ' + sinTexto + ' sin texto extraído' : '') + (duplicados ? ' · ' + duplicados + ' posibles duplicados' : '');
+    });
+  }
+
+  var BUSCARCV_STOPWORDS = new Set([
+    'de','la','el','en','y','a','los','las','del','un','una','que','con','para','por','se','su','sus',
+    'al','lo','como','experiencia','busco','buscamos','necesito','necesitamos','alguien','persona','candidato',
+  ]);
+
+  function _tokenizarBusquedaCv(q) {
+    var palabras = (q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').match(/[a-z0-9]+/g) || [])
+      .filter(function(w) { return w.length >= 4 && !BUSCARCV_STOPWORDS.has(w); });
+    return palabras.length ? palabras : [q.trim()];
+  }
+
+  function buscarCvTexto() {
+    var input = document.getElementById('buscarcv-input');
+    var query = (input.value || '').trim();
+    var box = document.getElementById('buscarcv-resultados');
+    if (!query) { mostrarToast('Escribí qué estás buscando'); return; }
+    box.innerHTML = '<div class="estado-vacio">Buscando...</div>';
+
+    var palabras = _tokenizarBusquedaCv(query);
+    var q = supa.from('cvs').select('id, nombre_archivo, drive_file_url');
+    palabras.forEach(function(p) { q = q.ilike('texto_extraido', '%' + p + '%'); });
+
+    q.limit(30).then(function(r) {
+      if (r.error) { box.innerHTML = '<div class="estado-vacio">Error buscando</div>'; return; }
+      if (r.data && r.data.length) { _renderResultadosBusquedaCv(r.data, palabras, box, false); return; }
+
+      supa.from('cvs').select('id, nombre_archivo, drive_file_url').ilike('nombre_archivo', '%' + query + '%').limit(30).then(function(r2) {
+        if (r2.error) { box.innerHTML = '<div class="estado-vacio">Error buscando</div>'; return; }
+        _renderResultadosBusquedaCv(r2.data || [], palabras, box, true);
+      });
+    });
+  }
+
+  function _renderResultadosBusquedaCv(filas, palabras, box, porNombre) {
+    if (!filas.length) {
+      box.innerHTML = '<div class="estado-vacio">No se encontraron CVs para esa búsqueda. Probá con otras palabras.</div>';
+      return;
+    }
+    var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+    filas.forEach(function(f) {
+      html += '<div style="padding:8px 10px;border:1px solid var(--borde);border-radius:8px;font-size:12.5px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">';
+      html += '<span style="font-weight:600">' + escHtml(f.nombre_archivo) + '</span>';
+      html += '<a href="' + f.drive_file_url + '" target="_blank" rel="noopener" class="btn" style="padding:2px 8px;font-size:11px;text-decoration:none">Ver CV</a>';
+      html += '</div>';
+      html += '<div style="font-size:11.5px;color:var(--texto-sec);margin-top:4px">' + (porNombre ? 'Coincidencia por nombre de archivo' : 'Coincide con: ' + palabras.map(escHtml).join(', ')) + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  }
+
+  function cargarCvDuplicados() {
+    var box = document.getElementById('buscarcv-duplicados');
+    box.innerHTML = '<div class="estado-vacio">Cargando...</div>';
+    supa.from('cvs')
+      .select('id, nombre_archivo, drive_file_url, original:posible_duplicado_de(nombre_archivo, drive_file_url)')
+      .not('posible_duplicado_de', 'is', null)
+      .then(function(r) {
+        if (r.error) { box.innerHTML = '<div class="estado-vacio">Error cargando duplicados</div>'; return; }
+        var filas = r.data || [];
+        if (!filas.length) {
+          box.innerHTML = '<div class="estado-vacio">No se detectaron posibles duplicados.</div>';
+          return;
+        }
+        var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+        filas.forEach(function(f) {
+          html += '<div style="padding:8px 10px;border:1px solid #FDE68A;background:#FFFBEB;border-radius:8px;font-size:12.5px">';
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">';
+          html += '<span>' + escHtml(f.nombre_archivo) + '</span>';
+          html += '<a href="' + f.drive_file_url + '" target="_blank" rel="noopener" class="btn" style="padding:2px 8px;font-size:11px;text-decoration:none">Ver</a>';
+          html += '</div>';
+          if (f.original) {
+            html += '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #FDE68A;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">';
+            html += '<span style="color:var(--texto-sec)">&#8627; posible duplicado de: ' + escHtml(f.original.nombre_archivo) + '</span>';
+            html += '<a href="' + f.original.drive_file_url + '" target="_blank" rel="noopener" class="btn" style="padding:2px 8px;font-size:11px;text-decoration:none">Ver</a>';
+            html += '</div>';
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+        box.innerHTML = html;
+      });
+  }
+
+  // ── SEGUIMIENTO ──
+  var SEGUIMIENTO_ETAPAS = [
+    { campo: 'etapa_llamada', fecha: 'etapa_llamada_fecha', label: 'Llamada de confirmación' },
+    { campo: 'etapa_temario', fecha: 'etapa_temario_fecha', label: 'Temario tentativo' },
+    { campo: 'etapa_diapositivas', fecha: 'etapa_diapositivas_fecha', label: 'Elaboración de diapositivas' },
+    { campo: 'etapa_zoom', fecha: 'etapa_zoom_fecha', label: 'Reunión de Zoom' },
+  ];
+
+  function cargarSeguimiento() {
+    var body = document.getElementById('seguimiento-body');
+    if (!body) return;
+    body.innerHTML = '<div class="estado-vacio">Cargando...</div>';
+    supa.from('seguimiento_cursos').select('*').order('created_at', { ascending: false }).then(function(r) {
+      if (r.error) { body.innerHTML = '<div class="estado-vacio">Error cargando seguimiento</div>'; return; }
+      _renderSeguimiento(r.data || []);
+    });
+  }
+
+  var _seguimientoFilas = {};
+
+  function _renderSeguimiento(filas) {
+    var body = document.getElementById('seguimiento-body');
+    _seguimientoFilas = {};
+    filas.forEach(function(f) { _seguimientoFilas[f.id] = f; });
+
+    if (!filas.length) {
+      body.innerHTML = '<div class="estado-vacio">Todavía no hay cursos en seguimiento. Enviá una idea desde "Ideas de Curso" para empezar.</div>';
+      return;
+    }
+    var html = '<div style="display:flex;flex-direction:column;gap:12px">';
+    filas.forEach(function(f) {
+      html += '<div id="seguimiento-item-' + f.id + '" style="border:1.5px solid var(--borde);border-radius:10px;padding:14px 16px">';
+      html += _verSeguimientoHtml(f);
+      html += '</div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
+  }
+
+  function _verSeguimientoHtml(f) {
+    var completas = SEGUIMIENTO_ETAPAS.filter(function(e) { return f[e.campo]; }).length;
+    var html = '';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">';
+    html += '<div>';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+    html += '<span style="font-weight:700;font-size:14px;color:var(--texto-pri)">' + escHtml(f.nombre) + '</span>';
+    html += '<button class="btn" style="padding:1px 8px;font-size:10.5px" onclick="toggleVerMasSeguimiento(\'' + f.id + '\')">Ver más &#9662;</button>';
+    html += '</div>';
+    html += '<div style="font-size:11.5px;color:var(--texto-sec);margin-top:3px">';
+    html += (f.docente_tipo === 'cv'
+      ? '&#128100; CV: ' + escHtml(f.cv_nombre || '(sin nombre)')
+      : '&#127891; Capacitador: ' + escHtml(f.capacitador_nombre || '(sin nombre)'));
+    if (f.whatsapp) {
+      var soloDigitos = f.whatsapp.replace(/\D/g, '');
+      html += ' &middot; <a href="https://wa.me/591' + soloDigitos + '" target="_blank" rel="noopener" style="color:#15803D;text-decoration:none">&#128241; ' + escHtml(f.whatsapp) + '</a>';
+    }
+    if (f.enviado_por) html += ' &middot; enviado por ' + escHtml(f.enviado_por);
+    html += '</div>';
+    html += '<div id="vermas-body-' + f.id + '" style="display:none;margin-top:8px;font-size:12px;color:var(--texto-pri);white-space:pre-line;line-height:1.6;background:var(--acento-suave);border-radius:8px;padding:10px 12px;max-width:560px">';
+    if (f.detalle) html += '<div style="margin-bottom:6px">' + escHtml(f.detalle) + '</div>';
+    if (f.contenido) html += escHtml(f.contenido);
+    html += '</div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+    if (f.area_nombre) html += '<span class="badge badge-neutro" style="font-size:10.5px">' + escHtml(f.area_nombre) + '</span>';
+    html += '<span style="font-size:10.5px;font-weight:700;color:var(--acento)">' + completas + '/4 etapas</span>';
+    html += '<button class="btn" style="padding:3px 8px;font-size:11px" onclick="editarSeguimientoInline(\'' + f.id + '\')">Editar</button>';
+    html += '<button class="btn" style="padding:3px 8px;font-size:11px" onclick="volverAIdeasCurso(\'' + f.id + '\')">&#8630; Volver a Ideas de Curso</button>';
+    html += '<button class="btn" style="padding:3px 8px;font-size:11px" onclick="eliminarSeguimiento(\'' + f.id + '\')">Eliminar</button>';
+    html += '</div></div>';
+    html += '<div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">';
+    SEGUIMIENTO_ETAPAS.forEach(function(e) {
+      var marcado = !!f[e.campo];
+      var fechaValue = _toDatetimeLocalValue(f[e.fecha]);
+      var colorFecha = _colorFechaEtapa(f[e.fecha], marcado);
+      html += '<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;flex-wrap:wrap">';
+      html += '<input type="checkbox" ' + (marcado ? 'checked' : '') + ' onchange="toggleEtapaSeguimiento(\'' + f.id + '\',\'' + e.campo + '\',this.checked)">';
+      html += '<span style="min-width:190px;' + (marcado ? 'text-decoration:line-through;color:var(--texto-ter)' : '') + '">' + e.label + '</span>';
+      html += '<input type="datetime-local" value="' + fechaValue + '" onchange="actualizarFechaEtapa(\'' + f.id + '\',\'' + e.fecha + '\',this.value)" style="padding:4px 6px;border-radius:6px;font-size:11.5px;font-family:inherit;border:1.5px solid ' + colorFecha.border + ';background:' + colorFecha.bg + ';color:' + colorFecha.color + '">';
+      html += '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function toggleVerMasSeguimiento(id) {
+    var box = document.getElementById('vermas-body-' + id);
+    if (box) box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+  }
+
+  function volverAIdeasCurso(id) {
+    var f = _seguimientoFilas[id];
+    if (!f) return;
+    if (!confirm('¿Devolver "' + f.nombre + '" a Ideas de Curso? Se va a sacar de Seguimiento.')) return;
+    supa.from('ideas_cursos').insert({
+      nombre: f.nombre, detalle: f.detalle, contenido: f.contenido, area_nombre: f.area_nombre,
+      importancia: 1, origen: 'manual',
+    }).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      supa.from('seguimiento_cursos').delete().eq('id', id).then(function() {
+        mostrarToast('Devuelto a Ideas de Curso');
+        cargarSeguimiento();
+      });
+    });
+  }
+
+  function editarSeguimientoInline(id) {
+    var f = _seguimientoFilas[id];
+    var row = document.getElementById('seguimiento-item-' + id);
+    if (!f || !row) return;
+    var st = 'width:100%;padding:8px 10px;border:1px solid var(--acento);border-radius:8px;font-size:13px;outline:none;font-family:inherit;box-sizing:border-box';
+
+    var html = '';
+    html += '<div class="form-field" style="margin-bottom:10px"><label>Nombre del curso</label>';
+    html += '<input type="text" id="edit-seg-nombre-' + id + '" value="' + escHtml(f.nombre) + '" style="' + st + '"></div>';
+    html += '<div class="form-field" style="margin-bottom:10px"><label>Detalle</label>';
+    html += '<textarea id="edit-seg-detalle-' + id + '" rows="2" style="' + st + ';resize:vertical">' + escHtml(f.detalle || '') + '</textarea></div>';
+    html += '<div class="form-field" style="margin-bottom:10px"><label>Contenido / Temario</label>';
+    html += '<textarea id="edit-seg-contenido-' + id + '" rows="6" style="' + st + ';resize:vertical">' + escHtml(f.contenido || '') + '</textarea></div>';
+
+    html += '<div class="form-field" style="margin-bottom:10px"><label>¿Quién da el curso?</label>';
+    html += '<div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12.5px">';
+    html += '<input type="radio" name="edit-docente-tipo-' + id + '" value="capacitador" ' + (f.docente_tipo === 'capacitador' ? 'checked' : '') + ' onchange="_toggleEditDocenteTipo(\'' + id + '\')"> Capacitador:';
+    html += '<select id="edit-seg-cap-' + id + '" onchange="_autocompletarWhatsappEdit(\'' + id + '\')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--borde);font-family:inherit"><option value="">Cargando...</option></select>';
+    html += '</label>';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12.5px">';
+    html += '<input type="radio" name="edit-docente-tipo-' + id + '" value="cv" ' + (f.docente_tipo === 'cv' ? 'checked' : '') + ' onchange="_toggleEditDocenteTipo(\'' + id + '\')"> CV:';
+    html += '<input type="text" id="edit-seg-cv-buscar-' + id + '" placeholder="Buscar por nombre..." style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--borde);font-family:inherit" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_buscarCvEdit(\'' + id + '\');}">';
+    html += '<button type="button" class="btn" style="padding:3px 8px;font-size:11px" onclick="_buscarCvEdit(\'' + id + '\')">Buscar</button>';
+    html += '</label>';
+    html += '<select id="edit-seg-cv-' + id + '" style="padding:5px 8px;border-radius:6px;border:1px solid var(--borde);font-family:inherit;margin-left:22px">';
+    html += (f.docente_tipo === 'cv' && f.cv_id)
+      ? '<option value="' + f.cv_id + '" data-nombre="' + escHtml(f.cv_nombre || '') + '" selected>' + escHtml(f.cv_nombre || '') + '</option>'
+      : '<option value="">(buscá y elegí un CV)</option>';
+    html += '</select>';
+    html += '</div></div>';
+
+    html += '<div class="form-field" style="margin-bottom:10px"><label>WhatsApp</label>';
+    html += '<input type="text" id="edit-seg-whatsapp-' + id + '" value="' + escHtml(f.whatsapp || '') + '" placeholder="Ej: 77223543" style="' + st + '"></div>';
+
+    html += '<div style="display:flex;gap:8px;margin-top:8px">';
+    html += '<button class="btn btn-primario" onclick="guardarEditSeguimiento(\'' + id + '\')">Guardar</button>';
+    html += '<button class="btn" onclick="cancelarEditSeguimiento(\'' + id + '\')">Cancelar</button>';
+    html += '</div>';
+
+    row.innerHTML = html;
+
+    supa.from('capacitadores').select('id, nombre, celular').eq('activo', true).order('nombre').then(function(r) {
+      var lista = r.data || [];
+      var sel = document.getElementById('edit-seg-cap-' + id);
+      if (!sel) return;
+      sel.innerHTML = lista.length ? lista.map(function(c) {
+        var sel2 = (f.docente_tipo === 'capacitador' && f.capacitador_id === c.id) ? ' selected' : '';
+        return '<option value="' + c.id + '" data-nombre="' + escHtml(c.nombre) + '" data-celular="' + escHtml(c.celular || '') + '"' + sel2 + '>' + escHtml(c.nombre) + '</option>';
+      }).join('') : '<option value="">(sin capacitadores)</option>';
+    });
+
+    _toggleEditDocenteTipo(id);
+  }
+
+  function _toggleEditDocenteTipo(id) {
+    var tipo = document.querySelector('input[name="edit-docente-tipo-' + id + '"]:checked').value;
+    var capSel = document.getElementById('edit-seg-cap-' + id);
+    var cvBuscar = document.getElementById('edit-seg-cv-buscar-' + id);
+    var cvSel = document.getElementById('edit-seg-cv-' + id);
+    if (capSel) capSel.disabled = (tipo !== 'capacitador');
+    if (cvBuscar) cvBuscar.disabled = (tipo !== 'cv');
+    if (cvSel) cvSel.disabled = (tipo !== 'cv');
+  }
+
+  function _autocompletarWhatsappEdit(id) {
+    var sel = document.getElementById('edit-seg-cap-' + id);
+    var opt = sel.options[sel.selectedIndex];
+    var celular = opt ? opt.getAttribute('data-celular') : '';
+    var inp = document.getElementById('edit-seg-whatsapp-' + id);
+    if (inp && celular) inp.value = celular;
+  }
+
+  function _buscarCvEdit(id) {
+    var q = (document.getElementById('edit-seg-cv-buscar-' + id).value || '').trim();
+    if (!q) { mostrarToast('Escribí un nombre para buscar'); return; }
+    supa.from('cvs').select('id, nombre_archivo').ilike('nombre_archivo', '%' + q + '%').limit(20).then(function(r) {
+      var lista = r.data || [];
+      var sel = document.getElementById('edit-seg-cv-' + id);
+      if (!sel) return;
+      sel.innerHTML = lista.length
+        ? lista.map(function(c) { return '<option value="' + c.id + '" data-nombre="' + escHtml(c.nombre_archivo) + '">' + escHtml(c.nombre_archivo) + '</option>'; }).join('')
+        : '<option value="">(sin resultados)</option>';
+    });
+  }
+
+  function cancelarEditSeguimiento(id) {
+    var f = _seguimientoFilas[id];
+    var row = document.getElementById('seguimiento-item-' + id);
+    if (!f || !row) return;
+    row.innerHTML = _verSeguimientoHtml(f);
+  }
+
+  function guardarEditSeguimiento(id) {
+    var nombre = document.getElementById('edit-seg-nombre-' + id).value.trim();
+    var detalle = document.getElementById('edit-seg-detalle-' + id).value.trim();
+    var contenido = document.getElementById('edit-seg-contenido-' + id).value.trim();
+    var whatsapp = document.getElementById('edit-seg-whatsapp-' + id).value.trim();
+    var tipo = document.querySelector('input[name="edit-docente-tipo-' + id + '"]:checked').value;
+    if (!nombre) { mostrarToast('El nombre no puede estar vacío'); return; }
+
+    var payload = { nombre: nombre, detalle: detalle, contenido: contenido, whatsapp: whatsapp, docente_tipo: tipo };
+    if (tipo === 'capacitador') {
+      var sel = document.getElementById('edit-seg-cap-' + id);
+      var opt = sel.options[sel.selectedIndex];
+      if (!opt || !opt.value) { mostrarToast('Elegí un capacitador'); return; }
+      payload.capacitador_id = opt.value;
+      payload.capacitador_nombre = opt.getAttribute('data-nombre');
+      payload.cv_id = null;
+      payload.cv_nombre = null;
+    } else {
+      var selCv = document.getElementById('edit-seg-cv-' + id);
+      var optCv = selCv.options[selCv.selectedIndex];
+      if (!optCv || !optCv.value) { mostrarToast('Elegí un CV'); return; }
+      payload.cv_id = optCv.value;
+      payload.cv_nombre = optCv.getAttribute('data-nombre');
+      payload.capacitador_id = null;
+      payload.capacitador_nombre = null;
+    }
+
+    supa.from('seguimiento_cursos').update(payload).eq('id', id).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      mostrarToast('Actualizado');
+      cargarSeguimiento();
+    });
+  }
+
+  function _colorFechaEtapa(fechaIso, marcado) {
+    if (marcado || !fechaIso) return { bg: 'white', border: 'var(--borde)', color: 'var(--texto)' };
+    var fecha = new Date(fechaIso);
+    var hoy = new Date();
+    var fechaSoloDia = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+    var hoySoloDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    if (fechaSoloDia.getTime() <= hoySoloDia.getTime()) {
+      return { bg: '#FEE2E2', border: '#FCA5A5', color: '#B91C1C' };
+    }
+    return { bg: '#DCFCE7', border: '#86EFAC', color: '#15803D' };
+  }
+
+  function _toDatetimeLocalValue(isoString) {
+    if (!isoString) return '';
+    var d = new Date(isoString);
+    var pad = function(n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function toggleEtapaSeguimiento(id, campo, marcado) {
+    var payload = {};
+    payload[campo] = marcado;
+    supa.from('seguimiento_cursos').update(payload).eq('id', id).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      cargarSeguimiento();
+    });
+  }
+
+  function actualizarFechaEtapa(id, fechaCampo, valor) {
+    var payload = {};
+    payload[fechaCampo] = valor ? new Date(valor).toISOString() : null;
+    supa.from('seguimiento_cursos').update(payload).eq('id', id).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      cargarSeguimiento();
+    });
+  }
+
+  function eliminarSeguimiento(id) {
+    if (!confirm('¿Eliminar este seguimiento? Esto no borra el CV ni el capacitador, solo el registro de seguimiento.')) return;
+    supa.from('seguimiento_cursos').delete().eq('id', id).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      mostrarToast('Eliminado');
+      cargarSeguimiento();
+    });
+  }
+
+  function cargarTartarekCursosNuevos() {
+    var body = document.getElementById('tartarek-nuevos-body');
+    if (!body) return;
+    body.innerHTML = '<div class="estado-vacio">Cargando recomendaciones...</div>';
+
+    supa.from('tartarek_cursos_nuevos').select('*').order('area_nombre').order('curso_sugerido').then(function(r) {
+      if (r.error) { body.innerHTML = '<div class="estado-vacio">Error cargando recomendaciones</div>'; return; }
+      _renderTartarekCursosNuevos(r.data || []);
+    });
+  }
+
+  var _tartarekNuevosFilas = {};
+
+  function _renderTartarekCursosNuevos(filas) {
+    var body = document.getElementById('tartarek-nuevos-body');
+    var meta = document.getElementById('tartarek-nuevos-meta');
+
+    _tartarekNuevosFilas = {};
+    filas.forEach(function(f) { _tartarekNuevosFilas[f.id] = f; });
+
+    if (!filas.length) {
+      body.innerHTML = '<div class="estado-vacio">Tartarek todavía no generó recomendaciones.</div>';
+      return;
+    }
+
+    var ultimoLote = filas.reduce(function(max, f) { return f.lote_fecha > max ? f.lote_fecha : max; }, filas[0].lote_fecha);
+    if (meta) {
+      var d = new Date(ultimoLote);
+      meta.textContent = 'Última investigación: ' + d.toLocaleDateString('es-BO', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    var porArea = {};
+    filas.forEach(function(f) {
+      if (!porArea[f.area_nombre]) porArea[f.area_nombre] = [];
+      porArea[f.area_nombre].push(f);
+    });
+
+    var areas = Object.keys(porArea).sort();
+    var html = '<div style="display:flex;flex-direction:column;gap:16px">';
+    areas.forEach(function(area) {
+      html += '<div style="border:1.5px solid var(--borde);border-radius:10px;overflow:hidden">';
+      html += '<div style="padding:10px 16px;background:var(--acento-suave);font-weight:700;font-size:13px;color:var(--acento)">' + escHtml(area) + '</div>';
+      html += '<div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px">';
+      porArea[area].forEach(function(c) {
+        html += '<div style="padding-bottom:10px;border-bottom:1px solid var(--borde)">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">';
+        html += '<div style="font-weight:600;font-size:13px;color:var(--texto-pri)">' + escHtml(c.curso_sugerido) + '</div>';
+        html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
+        html += '<span style="font-size:11px;color:var(--texto-sec)">Importancia:</span>';
+        html += _starsInputHtml('nuevo-curso-estrellas-' + c.id, 1);
+        html += '<button class="btn" style="padding:3px 8px;font-size:11px;white-space:nowrap" onclick="enviarAIdeaCurso(\'' + c.id + '\')">&#8594; Enviar a Idea de Curso</button>';
+        html += '</div>';
+        html += '</div>';
+        html += '<div style="font-size:12px;color:var(--texto-sec);margin-top:3px;line-height:1.5">' + escHtml(c.justificacion) + '</div>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
+  }
+
+  function enviarAIdeaCurso(id) {
+    var f = _tartarekNuevosFilas[id];
+    if (!f) return;
+    var contenido = (f.contenido || '').trim();
+    if (!contenido) { mostrarToast('Esta recomendación todavía no tiene los 7 temas generados'); return; }
+    var estrellasInp = document.getElementById('nuevo-curso-estrellas-' + id);
+    var importancia = estrellasInp ? (parseInt(estrellasInp.value) || 1) : 1;
+    supa.from('ideas_cursos').insert({
+      nombre: f.curso_sugerido, detalle: f.justificacion, contenido: contenido,
+      area_nombre: f.area_nombre, importancia: importancia, origen: 'tartarek',
+      enviado_por: usuarioActual ? usuarioActual.nombre : ''
+    }).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      supa.from('tartarek_cursos_nuevos').delete().eq('id', id).then(function() {});
+      delete _tartarekNuevosFilas[id];
+      mostrarToast('Enviado a Ideas de Curso: ' + f.curso_sugerido);
+      seleccionarSubTartarek('ideas');
+    });
+  }
+
+  // ── IDEAS DE CURSO ──
+  function _starsInputHtml(inputId, valor) {
+    valor = valor || 1;
+    var html = '<div id="' + inputId + '-stars" style="display:flex;gap:3px;font-size:22px;line-height:1">';
+    for (var i = 1; i <= 5; i++) {
+      html += '<span onclick="_setEstrellas(\'' + inputId + '\',' + i + ')" style="cursor:pointer;color:' + (i <= valor ? '#F59E0B' : 'var(--borde)') + '">&#9733;</span>';
+    }
+    html += '</div><input type="hidden" id="' + inputId + '" value="' + valor + '">';
+    return html;
+  }
+
+  function _setEstrellas(inputId, valor) {
+    var inp = document.getElementById(inputId);
+    if (inp) inp.value = valor;
+    var starsDiv = document.getElementById(inputId + '-stars');
+    if (!starsDiv) return;
+    var spans = starsDiv.querySelectorAll('span');
+    spans.forEach(function(s, idx) {
+      s.style.color = (idx + 1 <= valor) ? '#F59E0B' : 'var(--borde)';
+    });
+  }
+
+  function _starsDisplayHtml(valor) {
+    valor = parseInt(valor) || 1;
+    var html = '<span style="font-size:13px;letter-spacing:1px" title="Importancia: ' + valor + '/5">';
+    for (var i = 1; i <= 5; i++) html += '<span style="color:' + (i <= valor ? '#F59E0B' : 'var(--borde)') + '">&#9733;</span>';
+    html += '</span>';
+    return html;
+  }
+
+  function abrirFormIdeaCurso() {
+    document.getElementById('idea-curso-form-panel').style.display = 'block';
+    document.getElementById('idea-curso-importancia-wrap').innerHTML = _starsInputHtml('idea-curso-importancia', 1);
+  }
+
+  function cerrarFormIdeaCurso() {
+    document.getElementById('idea-curso-form-panel').style.display = 'none';
+    ['idea-curso-nombre', 'idea-curso-detalle', 'idea-curso-contenido'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('idea-curso-importancia-wrap').innerHTML = _starsInputHtml('idea-curso-importancia', 1);
+  }
+
+  function _formatearContenidoIdea(txt) {
+    return (txt || '').split('\n')
+      .map(function(l) { return l.trim(); })
+      .filter(function(l) { return l; })
+      .map(function(l) { return /^[▪️•\-*]/.test(l) ? l : '▪️ ' + l; })
+      .join('\n');
+  }
+
+  function guardarIdeaCurso() {
+    var nombre      = document.getElementById('idea-curso-nombre').value.trim();
+    var detalle     = document.getElementById('idea-curso-detalle').value.trim();
+    var contenido   = _formatearContenidoIdea(document.getElementById('idea-curso-contenido').value);
+    var importancia = parseInt(document.getElementById('idea-curso-importancia').value) || 1;
+    if (!nombre || !detalle || !contenido) { mostrarToast('Completa nombre, detalle y contenido'); return; }
+    supa.from('ideas_cursos').insert({ nombre: nombre, detalle: detalle, contenido: contenido, importancia: importancia, origen: 'manual' }).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      cerrarFormIdeaCurso();
+      mostrarToast('Idea guardada: ' + nombre);
+      cargarIdeasCursos();
+    });
+  }
+
+  function cargarIdeasCursos() {
+    var body = document.getElementById('ideas-curso-body');
+    if (!body) return;
+    body.innerHTML = '<div class="estado-vacio">Cargando ideas...</div>';
+    supa.from('ideas_cursos').select('*').order('importancia', { ascending: false }).order('created_at', { ascending: false }).then(function(r) {
+      if (r.error) { body.innerHTML = '<div class="estado-vacio">Error cargando ideas</div>'; return; }
+      _renderIdeasCursos(r.data || []);
+    });
+  }
+
+  var _ideasCursosFilas = {};
+
+  function _renderIdeasCursos(filas) {
+    var body = document.getElementById('ideas-curso-body');
+    _ideasCursosFilas = {};
+    filas.forEach(function(f) { _ideasCursosFilas[f.id] = f; });
+
+    if (!filas.length) {
+      body.innerHTML = '<div class="estado-vacio">Todavía no hay ideas guardadas.</div>';
+      return;
+    }
+    var html = '<div style="display:flex;flex-direction:column;gap:12px">';
+    filas.forEach(function(f) {
+      html += '<div id="idea-curso-item-' + f.id + '" style="border:1.5px solid var(--borde);border-radius:10px;padding:14px 16px">';
+      html += _verIdeaCursoHtml(f);
+      html += '</div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
+  }
+
+  function _verIdeaCursoHtml(f) {
+    var html = '';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">';
+    html += '<div>';
+    html += '<div style="font-weight:700;font-size:14px;color:var(--texto-pri)">' + escHtml(f.nombre) + '</div>';
+    html += '<div style="margin-top:3px">' + _starsDisplayHtml(f.importancia) + '</div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+    if (f.area_nombre) html += '<span class="badge badge-neutro" style="font-size:10.5px">' + escHtml(f.area_nombre) + '</span>';
+    var origenTxt = f.origen === 'tartarek'
+      ? ('&#129302; Tartarek' + (f.enviado_por ? ' &middot; enviado por ' + escHtml(f.enviado_por) : ''))
+      : '&#9998; Manual';
+    html += '<span style="font-size:10.5px;color:var(--texto-ter)">' + origenTxt + '</span>';
+    html += '<button class="btn" style="padding:3px 8px;font-size:11px" onclick="editarIdeaCursoInline(\'' + f.id + '\')">Editar</button>';
+    html += '<button class="btn" style="padding:3px 8px;font-size:11px" onclick="eliminarIdeaCurso(\'' + f.id + '\')">Eliminar</button>';
+    html += '</div></div>';
+    html += '<div style="font-size:12.5px;color:var(--texto-sec);margin-top:6px;line-height:1.5">' + escHtml(f.detalle) + '</div>';
+    html += '<div style="font-size:12px;color:var(--texto-pri);margin-top:10px;white-space:pre-line;line-height:1.7;background:var(--acento-suave);border-radius:8px;padding:10px 12px">' + escHtml(f.contenido) + '</div>';
+    html += '<div style="margin-top:10px;border-top:1px solid var(--borde);padding-top:10px">';
+    html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+    html += '<button class="btn" style="padding:3px 10px;font-size:11px" onclick="toggleMatchesIdea(\'' + f.id + '\')" id="btn-matches-' + f.id + '">&#128100; Ver CVs sugeridos</button>';
+    html += '<button class="btn" style="padding:3px 10px;font-size:11px" id="btn-buscar-cand-' + f.id + '" onclick="buscarCandidatosIdea(\'' + f.id + '\')">&#8635; Buscar candidatos ahora</button>';
+    html += '<button class="btn btn-primario" style="padding:3px 10px;font-size:11px" onclick="abrirFormSeguimiento(\'' + f.id + '\')">&#128203; Enviar a Seguimiento</button>';
+    html += '</div>';
+    html += '<div id="matches-idea-' + f.id + '" style="display:none;margin-top:10px"></div>';
+    html += '<div id="seguimiento-form-' + f.id + '" style="display:none;margin-top:10px;padding:12px;border:1.5px solid var(--acento);border-radius:8px;background:var(--acento-suave)">';
+    html += '<div style="font-weight:700;font-size:12.5px;margin-bottom:8px">¿Quién va a dar este curso?</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:8px">';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12.5px">';
+    html += '<input type="radio" name="docente-tipo-' + f.id + '" value="cv" checked onchange="_toggleDocenteTipo(\'' + f.id + '\')"> Un CV sugerido:';
+    html += '<select id="seg-cv-select-' + f.id + '" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--borde);font-family:inherit"><option value="">Cargando...</option></select>';
+    html += '</label>';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12.5px">';
+    html += '<input type="radio" name="docente-tipo-' + f.id + '" value="capacitador" onchange="_toggleDocenteTipo(\'' + f.id + '\')"> Un capacitador:';
+    html += '<select id="seg-cap-select-' + f.id + '" disabled onchange="_autocompletarWhatsapp(\'' + f.id + '\')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--borde);font-family:inherit"><option value="">Cargando...</option></select>';
+    html += '</label>';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12.5px">';
+    html += 'WhatsApp:';
+    html += '<input type="text" id="seg-whatsapp-' + f.id + '" placeholder="Ej: 77223543" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--borde);font-family:inherit">';
+    html += '</label>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:8px;margin-top:10px">';
+    html += '<button class="btn btn-primario" onclick="confirmarEnviarSeguimiento(\'' + f.id + '\')">Confirmar</button>';
+    html += '<button class="btn" onclick="document.getElementById(\'seguimiento-form-' + f.id + '\').style.display=\'none\'">Cancelar</button>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    return html;
+  }
+
+  function abrirFormSeguimiento(id) {
+    var panel = document.getElementById('seguimiento-form-' + id);
+    if (!panel) return;
+    panel.style.display = 'block';
+
+    var cvSelect = document.getElementById('seg-cv-select-' + id);
+    cvSelect.innerHTML = '<option value="">Cargando...</option>';
+    supa.from('cv_matches').select('cv_id, similarity_score, cvs(nombre_archivo)').eq('curso_id', id).order('similarity_score', { ascending: false }).then(function(r) {
+      var filas = (r.data || []).filter(function(m) { return m.cvs; });
+      if (!filas.length) { cvSelect.innerHTML = '<option value="">(sin CVs sugeridos todavía)</option>'; return; }
+      cvSelect.innerHTML = filas.map(function(m) {
+        return '<option value="' + m.cv_id + '" data-nombre="' + escHtml(m.cvs.nombre_archivo) + '">' + escHtml(m.cvs.nombre_archivo) + '</option>';
+      }).join('');
+    });
+
+    var capSelect = document.getElementById('seg-cap-select-' + id);
+    capSelect.innerHTML = '<option value="">Cargando...</option>';
+    supa.from('capacitadores').select('id, nombre, celular').eq('activo', true).order('nombre').then(function(r) {
+      var filas = r.data || [];
+      capSelect.innerHTML = filas.length
+        ? filas.map(function(c) { return '<option value="' + c.id + '" data-nombre="' + escHtml(c.nombre) + '" data-celular="' + escHtml(c.celular || '') + '">' + escHtml(c.nombre) + '</option>'; }).join('')
+        : '<option value="">(sin capacitadores)</option>';
+    });
+  }
+
+  function _autocompletarWhatsapp(id) {
+    var sel = document.getElementById('seg-cap-select-' + id);
+    var opt = sel.options[sel.selectedIndex];
+    var celular = opt ? opt.getAttribute('data-celular') : '';
+    var inp = document.getElementById('seg-whatsapp-' + id);
+    if (inp && celular) inp.value = celular;
+  }
+
+  function _toggleDocenteTipo(id) {
+    var tipo = document.querySelector('input[name="docente-tipo-' + id + '"]:checked').value;
+    document.getElementById('seg-cv-select-' + id).disabled = (tipo !== 'cv');
+    document.getElementById('seg-cap-select-' + id).disabled = (tipo !== 'capacitador');
+  }
+
+  function confirmarEnviarSeguimiento(ideaId) {
+    var f = _ideasCursosFilas[ideaId];
+    if (!f) return;
+    var tipo = document.querySelector('input[name="docente-tipo-' + ideaId + '"]:checked').value;
+    var payload = {
+      idea_curso_id: ideaId,
+      nombre: f.nombre,
+      detalle: f.detalle,
+      contenido: f.contenido,
+      area_nombre: f.area_nombre,
+      docente_tipo: tipo,
+      enviado_por: usuarioActual ? usuarioActual.nombre : '',
+      whatsapp: (document.getElementById('seg-whatsapp-' + ideaId).value || '').trim(),
+    };
+    if (tipo === 'cv') {
+      var cvSel = document.getElementById('seg-cv-select-' + ideaId);
+      var opt = cvSel.options[cvSel.selectedIndex];
+      if (!opt || !opt.value) { mostrarToast('Elegí un CV'); return; }
+      payload.cv_id = opt.value;
+      payload.cv_nombre = opt.getAttribute('data-nombre');
+    } else {
+      var capSel = document.getElementById('seg-cap-select-' + ideaId);
+      var opt2 = capSel.options[capSel.selectedIndex];
+      if (!opt2 || !opt2.value) { mostrarToast('Elegí un capacitador'); return; }
+      payload.capacitador_id = opt2.value;
+      payload.capacitador_nombre = opt2.getAttribute('data-nombre');
+    }
+    supa.from('seguimiento_cursos').insert(payload).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      supa.from('ideas_cursos').delete().eq('id', ideaId).then(function() {
+        mostrarToast('Enviado a Seguimiento: ' + f.nombre);
+        cargarIdeasCursos();
+      });
+    });
+  }
+
+  function toggleMatchesIdea(id) {
+    var box = document.getElementById('matches-idea-' + id);
+    if (!box) return;
+    if (box.style.display === 'none') {
+      box.style.display = 'block';
+      cargarMatchesIdea(id);
+    } else {
+      box.style.display = 'none';
+    }
+  }
+
+  function cargarMatchesIdea(id) {
+    var box = document.getElementById('matches-idea-' + id);
+    if (!box) return;
+    box.innerHTML = '<div class="estado-vacio">Cargando candidatos...</div>';
+    supa.from('cv_matches').select('cv_id, similarity_score, motivo, palabras_encontradas, cvs(nombre_archivo, drive_file_url, estado_extraccion)')
+      .eq('curso_id', id).order('similarity_score', { ascending: false }).then(function(r) {
+        if (r.error) { box.innerHTML = '<div class="estado-vacio">Error cargando candidatos</div>'; return; }
+        var filas = r.data || [];
+        if (!filas.length) {
+          box.innerHTML = '<div class="estado-vacio">No hay candidatos con buena coincidencia todavía (o falta correr "Buscar candidatos ahora"). Esto mejora a medida que se cargan más CVs.</div>';
+          return;
+        }
+        var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+        filas.forEach(function(m) {
+          if (!m.cvs) return;
+          var pct = Math.round((m.similarity_score || 0) * 100);
+          html += '<div style="padding:8px 10px;border:1px solid var(--borde);border-radius:8px;font-size:12.5px">';
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">';
+          html += '<span style="font-weight:600">' + escHtml(m.cvs.nombre_archivo) + '</span>';
+          html += '<div style="display:flex;align-items:center;gap:8px;white-space:nowrap">';
+          html += '<span style="font-size:11px;font-weight:700;color:var(--acento)">' + pct + '% match</span>';
+          html += '<a href="' + m.cvs.drive_file_url + '" target="_blank" rel="noopener" class="btn" style="padding:2px 8px;font-size:11px;text-decoration:none">Ver CV</a>';
+          html += '<button class="btn" style="padding:2px 8px;font-size:11px" onclick="rechazarCvDeIdea(\'' + id + '\',\'' + m.cv_id + '\')" title="Este CV no tiene que ver, no volver a sugerirlo para esta idea">Rechazar</button>';
+          html += '</div></div>';
+          if (m.palabras_encontradas && m.palabras_encontradas.length) {
+            html += '<div style="font-size:11px;color:var(--texto-sec);margin-top:5px">Coincidencias (clic para marcar como genérica y descartarla siempre):</div>';
+            html += '<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">';
+            m.palabras_encontradas.forEach(function(p) {
+              html += '<button onclick="descartarPalabraClave(\'' + escHtml(p).replace(/'/g, "\\'") + '\',\'' + id + '\')" style="font-size:10.5px;padding:2px 8px;border-radius:10px;border:1px solid var(--borde);background:var(--acento-suave);color:var(--acento);cursor:pointer;font-family:inherit">' + escHtml(p) + ' &times;</button>';
+            });
+            html += '</div>';
+          } else if (m.motivo) {
+            html += '<div style="font-size:11.5px;color:var(--texto-sec);margin-top:4px">' + escHtml(m.motivo) + '</div>';
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+        box.innerHTML = html;
+      });
+  }
+
+  function rechazarCvDeIdea(ideaId, cvId) {
+    supa.from('cv_matches_rechazados').insert({ curso_id: ideaId, cv_id: cvId }).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      supa.from('cv_matches').delete().eq('curso_id', ideaId).eq('cv_id', cvId).then(function() {
+        mostrarToast('CV descartado para esta idea');
+        cargarMatchesIdea(ideaId);
+      });
+    });
+  }
+
+  function descartarPalabraClave(palabra, ideaId) {
+    if (!confirm('"' + palabra + '" es una palabra demasiado genérica y no se va a volver a usar para el matching de NINGÚN curso. ¿Confirmás?')) return;
+    var norm = palabra.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    supa.from('palabras_descartadas').insert({ palabra_norm: norm, palabra_original: palabra }).then(function(r) {
+      if (r.error && r.error.code !== '23505') { mostrarToast('Error: ' + r.error.message); return; }
+      mostrarToast('"' + palabra + '" descartada del matching. Recalculando...');
+      buscarCandidatosIdea(ideaId);
+    });
+  }
+
+  // DEMO: en el sistema original esto llama a la Edge Function "match-course"
+  // (que usa Postgres + búsqueda por palabras clave en el servidor). Acá se
+  // simula el mismo criterio en el navegador, contra los CVs de ejemplo.
+  function buscarCandidatosIdea(id) {
+    var btn = document.getElementById('btn-buscar-cand-' + id);
+    if (btn) { btn.disabled = true; btn.textContent = 'Buscando...'; }
+    setTimeout(function() {
+      var idea = _ideasCursosFilas[id] || DEMO_IDEAS_CURSOS.find(function(x) { return x.id === id; });
+      if (!idea) return;
+      var texto = ((idea.nombre || '') + ' ' + (idea.detalle || '') + ' ' + (idea.contenido || ''));
+      var descartadas = DEMO_PALABRAS_DESCARTADAS.map(function(p) { return p.palabra_norm; });
+      var palabras = _tokenizarBusquedaCv(texto).filter(function(p) { return descartadas.indexOf(p) === -1; });
+      var rechazados = DEMO_CV_MATCHES_RECHAZADOS.filter(function(r) { return r.curso_id === id; }).map(function(r) { return r.cv_id; });
+
+      for (var i = DEMO_CV_MATCHES.length - 1; i >= 0; i--) {
+        if (DEMO_CV_MATCHES[i].curso_id === id) DEMO_CV_MATCHES.splice(i, 1);
+      }
+      var encontrados = 0;
+      DEMO_CVS.forEach(function(cv) {
+        if (!cv.texto_extraido || rechazados.indexOf(cv.id) !== -1) return;
+        var hay = cv.texto_extraido.toLowerCase();
+        var coincidencias = palabras.filter(function(p) { return hay.indexOf(p) !== -1; });
+        if (coincidencias.length) {
+          DEMO_CV_MATCHES.push({ curso_id: id, cv_id: cv.id, similarity_score: Math.min(0.95, 0.4 + coincidencias.length * 0.15), palabras_encontradas: coincidencias, motivo: null });
+          encontrados++;
+        }
+      });
+      if (btn) { btn.disabled = false; btn.innerHTML = '&#8635; Buscar candidatos ahora'; }
+      mostrarToast('Candidatos encontrados: ' + encontrados);
+      var box = document.getElementById('matches-idea-' + id);
+      if (box) { box.style.display = 'block'; cargarMatchesIdea(id); }
+    }, 400);
+  }
+
+  function editarIdeaCursoInline(id) {
+    var f = _ideasCursosFilas[id];
+    var row = document.getElementById('idea-curso-item-' + id);
+    if (!f || !row) return;
+    var st = 'width:100%;padding:8px 10px;border:1px solid var(--acento);border-radius:8px;font-size:13px;outline:none;font-family:inherit;box-sizing:border-box';
+    row.innerHTML =
+      '<div class="form-field" style="margin-bottom:10px">' +
+        '<label>Nombre del curso</label>' +
+        '<input type="text" id="edit-idea-nombre-' + id + '" value="' + escHtml(f.nombre) + '" style="' + st + '">' +
+      '</div>' +
+      '<div class="form-field" style="margin-bottom:10px">' +
+        '<label>Detalle</label>' +
+        '<textarea id="edit-idea-detalle-' + id + '" rows="2" style="' + st + ';resize:vertical">' + escHtml(f.detalle) + '</textarea>' +
+      '</div>' +
+      '<div class="form-field" style="margin-bottom:10px">' +
+        '<label>Contenido — 7 temas</label>' +
+        '<textarea id="edit-idea-contenido-' + id + '" rows="7" style="' + st + ';resize:vertical">' + escHtml(f.contenido) + '</textarea>' +
+      '</div>' +
+      '<div class="form-field" style="margin-bottom:10px">' +
+        '<label>Importancia</label>' +
+        '<div id="edit-idea-importancia-' + id + '-wrap">' + _starsInputHtml('edit-idea-importancia-' + id, f.importancia) + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button class="btn btn-primario" style="padding:5px 14px;font-size:12px" onclick="guardarEditIdeaCurso(\'' + id + '\')">Guardar</button>' +
+        '<button class="btn" style="padding:5px 14px;font-size:12px" onclick="cancelarEditIdeaCurso(\'' + id + '\')">Cancelar</button>' +
+      '</div>';
+  }
+
+  function cancelarEditIdeaCurso(id) {
+    var f = _ideasCursosFilas[id];
+    var row = document.getElementById('idea-curso-item-' + id);
+    if (!f || !row) return;
+    row.innerHTML = _verIdeaCursoHtml(f);
+  }
+
+  function guardarEditIdeaCurso(id) {
+    var nombre      = document.getElementById('edit-idea-nombre-' + id).value.trim();
+    var detalle     = document.getElementById('edit-idea-detalle-' + id).value.trim();
+    var contenido   = _formatearContenidoIdea(document.getElementById('edit-idea-contenido-' + id).value);
+    var importancia = parseInt(document.getElementById('edit-idea-importancia-' + id).value) || 1;
+    if (!nombre || !detalle || !contenido) { mostrarToast('Completa nombre, detalle y contenido'); return; }
+    supa.from('ideas_cursos').update({ nombre: nombre, detalle: detalle, contenido: contenido, importancia: importancia }).eq('id', id).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      mostrarToast('Idea actualizada');
+      cargarIdeasCursos();
+    });
+  }
+
+  function eliminarIdeaCurso(id) {
+    if (!confirm('¿Eliminar esta idea de curso?')) return;
+    supa.from('ideas_cursos').delete().eq('id', id).then(function(r) {
+      if (r.error) { mostrarToast('Error: ' + r.error.message); return; }
+      mostrarToast('Idea eliminada');
+      cargarIdeasCursos();
+    });
+  }
+
+  function analizarTartarekRepetir() {
+    var body = document.getElementById('tartarek-repetir-body');
+    if (!body) return;
+    body.innerHTML = '<div class="estado-vacio">Tartarek está analizando el historial de cursos...</div>';
+
+    var hoy = new Date();
+    var desde = new Date(hoy.getFullYear(), hoy.getMonth() - 11, 1);
+    var desdeStr = desde.toISOString().slice(0, 10);
+    var hoyStr = hoy.toISOString().slice(0, 10);
+
+    supa.from('cronograma_eventos').select('id, curso, fecha')
+      .gte('fecha', desdeStr)
+      .then(function(r1) {
+        var eventos = r1.data || [];
+        supa.from('ventas').select('curso, fecha_pago, created_at')
+          .gte('created_at', desdeStr + 'T00:00:00')
+          .then(function(r2) {
+            _renderTartarekRepetir(eventos, r2.data || [], hoyStr);
+          });
+      });
+  }
+
+  function _renderTartarekRepetir(eventos, ventas, hoyStr) {
+    var cursos = {};
+
+    eventos.forEach(function(e) {
+      if (!e.curso || !e.fecha) return;
+      if (!cursos[e.curso]) cursos[e.curso] = { meses: {}, proximaFecha: null };
+      if (e.fecha > hoyStr) {
+        if (!cursos[e.curso].proximaFecha || e.fecha < cursos[e.curso].proximaFecha) {
+          cursos[e.curso].proximaFecha = e.fecha;
+        }
+      }
+    });
+
+    ventas.forEach(function(v) {
+      if (!v.curso) return;
+      var fp = v.fecha_pago || (v.created_at ? v.created_at.substring(0, 10) : null);
+      if (!fp) return;
+      var ym = fp.substring(0, 7);
+      if (!cursos[v.curso]) cursos[v.curso] = { meses: {}, proximaFecha: null };
+      if (!cursos[v.curso].meses[ym]) cursos[v.curso].meses[ym] = { count: 0, fecha: fp };
+      cursos[v.curso].meses[ym].count++;
+    });
+
+    var hoyDate = new Date(hoyStr + 'T12:00:00');
+    var candidatos = [];
+
+    Object.keys(cursos).forEach(function(curso) {
+      var c = cursos[curso];
+      if (c.proximaFecha) return;
+      var meses = Object.keys(c.meses).sort();
+      if (!meses.length) return;
+
+      var ultimoMes = meses[meses.length - 1];
+      var ultimo    = c.meses[ultimoMes];
+      if (ultimo.count < _TARTAREK_UMBRAL) return;
+
+      var totalCount = 0;
+      meses.forEach(function(m) { totalCount += c.meses[m].count; });
+      var promedio = totalCount / meses.length;
+
+      var ultimaFechaDate = new Date(ultimo.fecha + 'T12:00:00');
+      var mesesSinRepetir = (hoyDate.getFullYear() - ultimaFechaDate.getFullYear()) * 12 + (hoyDate.getMonth() - ultimaFechaDate.getMonth());
+      if (mesesSinRepetir < 1) return;
+
+      candidatos.push({ curso: curso, ultimoCount: ultimo.count, ultimaFecha: ultimo.fecha, promedio: promedio, mesesSinRepetir: mesesSinRepetir });
+    });
+
+    candidatos.sort(function(a, b) {
+      if (b.mesesSinRepetir !== a.mesesSinRepetir) return b.mesesSinRepetir - a.mesesSinRepetir;
+      return b.ultimoCount - a.ultimoCount;
+    });
+
+    var body = document.getElementById('tartarek-repetir-body');
+    if (!candidatos.length) {
+      body.innerHTML = '<div class="estado-vacio">Por ahora ningún curso supera el umbral de ' + _TARTAREK_UMBRAL + ' inscritos sin tener ya una repetición programada.</div>';
+      return;
+    }
+
+    var _mesesEs = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    function fmtFecha(f) {
+      var p = f.split('-');
+      return parseInt(p[2], 10) + ' de ' + _mesesEs[parseInt(p[1], 10) - 1] + ' de ' + p[0];
+    }
+
+    var html = '<div style="display:flex;flex-direction:column;gap:12px">';
+    candidatos.forEach(function(c, i) {
+      html += '<div style="border:1.5px solid var(--borde);border-left:4px solid var(--acento);border-radius:10px;padding:14px 16px;background:white">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">';
+      html += '<div style="font-weight:700;font-size:14px;color:var(--texto-pri)">' + (i + 1) + '. ' + escHtml(c.curso) + '</div>';
+      html += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--acento-suave);color:var(--acento);white-space:nowrap">' + c.ultimoCount + ' inscritos</span>';
+      html += '</div>';
+      html += '<div style="font-size:12.5px;color:var(--texto-sec);margin-top:8px;line-height:1.5">';
+      html += 'Tuvo <b>' + c.ultimoCount + ' inscritos</b> en su última edición (' + fmtFecha(c.ultimaFecha) + '), superando el umbral recomendado de ' + _TARTAREK_UMBRAL + ' inscritos';
+      if (c.promedio) html += ' (promedio histórico: ' + c.promedio.toFixed(1) + ' inscritos/edición)';
+      html += '. Han pasado <b>' + c.mesesSinRepetir + ' mes' + (c.mesesSinRepetir === 1 ? '' : 'es') + '</b> desde entonces sin que se vuelva a programar.';
+      html += '</div></div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
+  }
+</script>
+</body>
+</html>
